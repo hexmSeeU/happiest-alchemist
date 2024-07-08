@@ -1,6 +1,7 @@
-import numpy as np
 import imageio.v2 as imageio
 from PIL import Image
+import numpy as np
+import os
 
 def process_image(filename, width, height, r):
     img = imageio.imread(filename)
@@ -35,21 +36,30 @@ def process_image(filename, width, height, r):
 
     return np.clip(reconstructed_image, 0, 255).astype(np.uint8)
 
-def apply_floyd_steinberg_dithering(image):
-    image = image.astype(np.float64)
-    h, w, c = image.shape
-    for y in range(h):
-        for x in range(w):
-            old_pixel = image[y, x].copy()
-            new_pixel = np.round(old_pixel / 255 * 31) * (255 / 31)
-            image[y, x] = new_pixel
-            quant_error = old_pixel - new_pixel
-            if x + 1 < w:
-                image[y, x + 1] += quant_error * 7 / 16
-            if x - 1 >= 0 and y + 1 < h:
-                image[y + 1, x - 1] += quant_error * 3 / 16
-            if y + 1 < h:
-                image[y + 1, x] += quant_error * 5 / 16
-            if x + 1 < w and y + 1 < h:
-                image[y + 1, x + 1] += quant_error * 1 / 16
-    return np.clip(image, 0, 255).astype(np.uint8)
+def process_folder(input_folder, output_folder, width, height, r):
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+    
+    for subdir in os.listdir(input_folder):
+        subdir_path = os.path.join(input_folder, subdir)
+        if os.path.isdir(subdir_path):
+            output_subdir_path = os.path.join(output_folder, subdir)
+            if not os.path.exists(output_subdir_path):
+                os.makedirs(output_subdir_path)
+            
+            for filename in os.listdir(subdir_path):
+                file_path = os.path.join(subdir_path, filename)
+                if os.path.isfile(file_path):
+                    processed_image = process_image(file_path, width, height, r)
+                    output_file_path = os.path.join(output_subdir_path, filename)
+                    imageio.imwrite(output_file_path, processed_image)
+                    print(f"Processed and saved: {output_file_path}")
+
+
+input_folder = 'train'  
+output_folder = 'train_new1'  
+width = 249  
+height = 249  
+r = 30
+
+process_folder(input_folder, output_folder, width, height, r)
